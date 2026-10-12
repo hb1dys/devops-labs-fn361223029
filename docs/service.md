@@ -4,18 +4,18 @@
 
 ## Purpose / Предназначение
 
-TODO: two or three sentences: what the service does and for whom. / две-три изречения: какво прави услугата и за кого.
+Услугата служи за съхранение на бележки, четене на съществуващи бележки, създаване на нови такива, проверка дали системата е жива и извеждане на версията на приложението.
 
 ## Endpoints / Адреси
 
 | Method | Path | What it does / Какво прави |
 |---|---|---|
-| GET | /health | TODO |
-| GET | /version | TODO |
-| GET | /notes | TODO |
-| POST | /notes | TODO |
-| GET | /notes/{id} | TODO |
+| GET | /health | Проверка дали приложението работи: {"status": "ok"} |
+| GET | /version | Готово ли е да обслужва: проверява базата; 503, ако не я достига |
+| GET | /notes | Списък с всички бележки |
+| POST | /notes | Създава бележка. title е задължително (от 1 до 100 знака), body не е |
+| GET | /notes/{id} | Една бележка; 404, ако не съществува |
 
 ## Dependencies / Зависимости
 
-TODO: what the service needs in order to run. / какво е нужно на услугата, за да работи.
+Завистимостите от които се нуждае услугата за да работи са python 3.12, FastAPI, Uvicorn, PostgreSQL и др.
