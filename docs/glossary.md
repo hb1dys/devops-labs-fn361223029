@@ -2,6 +2,14 @@
 
 > Keep the table in alphabetical order. One term per row. / Пазете таблицата по азбучен ред. Един термин на ред.
 
+| Term / Термин | Where / Къде |
+|---|---|
+| Artifact | преди CI (най-отгоре) |
+| Container | след CI, преди Deployment |
+| Pipeline | след Issue, преди Pull request |
+| Rollback | след Pull request, преди Version |
+| Tag | след Rollback, преди Version |
+
 | Term / Термин | Meaning / Значение |
 |---|---|
 | CI | Continuous integration: every change is built and tested automatically. / Всяка промяна се изгражда и тества автоматично. |
