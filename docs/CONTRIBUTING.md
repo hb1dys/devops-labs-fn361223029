@@ -11,4 +11,4 @@ Pull Requests
 PR-ът е свързан с Issue, има label и milestone.
 След merge клонът се изтрива.
 
-Branching strategy: GitFlow - отделни клонове develop, release и hotfix за по-строг контрол на изданията.
+Branching strategy: GitHub Flow — кратък клон за всяка задача и PR с ревю към main. Избрахме я, защото сме двама, задачите са малки и нямаме нужда от отделни develop/release клонове.
