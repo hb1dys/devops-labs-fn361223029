@@ -11,7 +11,7 @@ uvicorn app.main:app --reload
 
 ## Check that it works / Проверка, че работи
 
-http://127.0.0.1:9000/health
+http://127.0.0.1:8000/health
 
 ## Run the tests / Тестове
 
@@ -20,6 +20,6 @@ ruff check .
 
 ## When something breaks / Когато нещо се счупи
 
-curl http://127.0.0.1:9000/health: работи ли процесът изобщо?
-curl http://127.0.0.1:9000/ready: ако е 503, хранилището (базата) не се достига; проверете DATABASE_URL.
+curl http://127.0.0.1:8000/health: работи ли процесът изобщо?
+curl http://127.0.0.1:8000/ready: ако е 503, хранилището (базата) не се достига; проверете DATABASE_URL.
 Прегледайте логовете в терминала, където работи uvicorn.
