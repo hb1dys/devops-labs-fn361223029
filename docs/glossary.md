@@ -10,6 +10,14 @@
 | Rollback | след Pull request, преди Version |
 | Tag | след Rollback, преди Version |
 
+| Термин / Term  |  Къде / Where |
+|---|---|
+| Branch  |  преди CI |
+| Commit  |  след CI, преди Deployment |
+| Merge  |  след Issue, преди Pull request |
+| Release  |  след Pull request, преди Version |
+| Runner  |  след Pull request, преди Version |
+
 | Term / Термин | Meaning / Значение |
 |---|---|
 | CI | Continuous integration: every change is built and tested automatically. / Всяка промяна се изгражда и тества автоматично. |
