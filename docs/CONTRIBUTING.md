@@ -11,4 +11,4 @@ Pull Requests
 PR-ът е свързан с Issue, има label и milestone.
 След merge клонът се изтрива.
 
-Branching strategy: TBD
+Branching strategy: GitFlow - отделни клонове develop, release и hotfix за по-строг контрол на изданията.
