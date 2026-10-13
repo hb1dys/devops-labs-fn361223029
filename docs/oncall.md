@@ -4,6 +4,6 @@
 |---|---|---|
 | 4 | template | template |
 | 5 | @hb1dys | @Goshter991 |
-| 5 | @hb1dys | @Goshter991 |
-| 7 | TBD | TBD |
-| 8 | TBD | TBD |
+| 6 | @Goshter991 | @hb1dys |
+| 7 | @hb1dys | @Goshter991 |
+| 8 | @Goshter991 | @hb1dys |
