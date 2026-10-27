@@ -48,3 +48,38 @@ Stop / Спиране:
 
     docker stop notes-api
     docker rm notes-api
+
+## Стартиране с Compose / Run with Compose
+
+Еднократно: копирайте `.env.example` като `.env` и сложете истинска парола. / Once: copy `.env.example` to `.env` and set a real password.
+
+    copy .env.example .env
+
+Start / Стартиране (приложение + PostgreSQL):
+
+    docker compose up -d --build
+
+Status / Състояние: `app` и `db` трябва да са `(healthy)`.
+
+    docker compose ps
+
+Check / Проверка: http://127.0.0.1:8000/ready трябва да върне `{"status":"ready"}`.
+
+Logs / Логове:
+
+    docker compose logs -f app
+    docker compose logs db
+
+Adminer (само при нужда, сървър: `db`): http://127.0.0.1:8081
+
+    docker compose --profile tools up -d
+
+Stop / Спиране:
+
+    docker compose down
+
+`down` спира и изтрива контейнерите и мрежата, но volume-ът `db-data` остава и бележките се пазят. / `down` removes containers and the network; the `db-data` volume stays, so notes survive.
+
+    docker compose down -v
+
+`down -v` изтрива и volume-а: **всички бележки се губят**. / `down -v` also deletes the volume: **all notes are lost**.
