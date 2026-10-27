@@ -19,8 +19,5 @@ venv/
 .idea/
 .DS_Store
 
-# Local notes
-.claude/
-
 # MkDocs build output
 site/
