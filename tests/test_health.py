@@ -8,7 +8,7 @@ def test_version_default(client, monkeypatch):
     monkeypatch.delenv("APP_VERSION", raising=False)
     response = client.get("/version")
     assert response.status_code == 200
-    assert response.json() == {"version": "0.1.0"}
+    assert response.json() == {"version": "0.6.1"}
 
 
 def test_version_from_env(client, monkeypatch):

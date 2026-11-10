@@ -7,7 +7,7 @@ from app.classifier import Classifier, load_classifier
 from app.models import Note, NoteCreate
 from app.repository import InMemoryNoteRepository, PostgresNoteRepository
 
-DEFAULT_VERSION = "0.1.0"
+DEFAULT_VERSION = "0.6.1"
 
 app = FastAPI(title="Notes API")
 
