@@ -1,0 +1,270 @@
+---
+- name: Configure the Notes API lab
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars_prompt:
+    - name: db_password
+      prompt: "Database password (use a URL-safe value, e.g. output of openssl rand -hex 16)"
+      private: true
+
+  tasks:
+    - name: Validate the database password format
+      ansible.builtin.assert:
+        that:
+          - db_password is match('^[A-Za-z0-9_-]+$')
+        fail_msg: "Use only letters, numbers, underscores, and hyphens in the database password."
+      run_once: true
+      no_log: true
+
+    - name: Configure PostgreSQL
+      when: "'db' in group_names"
+      block:
+        - name: Install PostgreSQL
+          ansible.builtin.apt:
+            name: postgresql
+            state: present
+            update_cache: true
+            cache_valid_time: 3600
+
+        - name: Allow PostgreSQL connections from the lab network
+          ansible.builtin.lineinfile:
+            path: /etc/postgresql/17/main/postgresql.conf
+            regexp: '^#?listen_addresses\s*='
+            line: "listen_addresses = '*'"
+          notify: Restart PostgreSQL
+
+        - name: Allow Notes API servers to authenticate to PostgreSQL
+          ansible.builtin.lineinfile:
+            path: /etc/postgresql/17/main/pg_hba.conf
+            line: "host notes notes 172.16.0.0/12 scram-sha-256"
+            state: present
+          notify: Restart PostgreSQL
+
+        - name: Apply pending PostgreSQL configuration changes
+          ansible.builtin.meta: flush_handlers
+
+        - name: Ensure PostgreSQL is enabled and running
+          ansible.builtin.systemd_service:
+            name: postgresql
+            enabled: true
+            state: started
+
+        - name: Check whether the Notes database role exists
+          ansible.builtin.command:
+            argv:
+              - runuser
+              - --user
+              - postgres
+              - --
+              - psql
+              - -tAc
+              - "SELECT 1 FROM pg_roles WHERE rolname = 'notes'"
+          register: notes_role
+          changed_when: false
+
+        - name: Create the Notes database role
+          ansible.builtin.command:
+            argv:
+              - runuser
+              - --user
+              - postgres
+              - --
+              - psql
+              - -v
+              - ON_ERROR_STOP=1
+              - -c
+              - "CREATE ROLE notes LOGIN PASSWORD '{{ db_password }}'"
+          when: notes_role.stdout | trim != "1"
+          no_log: true
+
+        - name: Check whether the Notes database exists
+          ansible.builtin.command:
+            argv:
+              - runuser
+              - --user
+              - postgres
+              - --
+              - psql
+              - -tAc
+              - "SELECT 1 FROM pg_database WHERE datname = 'notes'"
+          register: notes_database
+          changed_when: false
+
+        - name: Create the Notes database
+          ansible.builtin.command:
+            argv:
+              - runuser
+              - --user
+              - postgres
+              - --
+              - createdb
+              - --owner=notes
+              - notes
+          when: notes_database.stdout | trim != "1"
+
+    - name: Configure the Notes API web servers
+      when: "'web' in group_names"
+      block:
+        - name: Install Python runtime and virtual environment support
+          ansible.builtin.apt:
+            name:
+              - python3
+              - python3-venv
+              - python3-packaging
+            state: present
+            update_cache: true
+            cache_valid_time: 3600
+
+        - name: Create the Notes API system user
+          ansible.builtin.user:
+            name: notes
+            system: true
+            home: /opt/notes
+            create_home: true
+            shell: /usr/sbin/nologin
+
+        - name: Create the Notes API application directory
+          ansible.builtin.file:
+            path: /opt/notes
+            state: directory
+            owner: notes
+            group: notes
+            mode: "0755"
+
+        - name: Copy the Notes API source
+          ansible.builtin.copy:
+            src: ../app/
+            dest: /opt/notes/app/
+            owner: notes
+            group: notes
+            mode: "0644"
+            directory_mode: "0755"
+          notify: Restart notes
+
+        - name: Copy Python requirements
+          ansible.builtin.copy:
+            src: ../requirements.txt
+            dest: /opt/notes/requirements.txt
+            owner: notes
+            group: notes
+            mode: "0644"
+          notify: Restart notes
+
+        - name: Install application dependencies in a virtual environment
+          ansible.builtin.pip:
+            requirements: /opt/notes/requirements.txt
+            virtualenv: /opt/notes/venv
+            virtualenv_command: /usr/bin/python3 -m venv
+          notify: Restart notes
+
+        - name: Configure the Notes API database connection
+          ansible.builtin.copy:
+            dest: /etc/notes.env
+            content: "DATABASE_URL=postgresql://notes:{{ db_password }}@db:5432/notes\n"
+            owner: root
+            group: notes
+            mode: "0640"
+          no_log: true
+          notify: Restart notes
+
+        - name: Install the Notes API systemd service
+          ansible.builtin.copy:
+            dest: /etc/systemd/system/notes.service
+            content: |
+              [Unit]
+              Description=Notes API
+              After=network.target
+
+              [Service]
+              User=notes
+              Group=notes
+              WorkingDirectory=/opt/notes
+              EnvironmentFile=/etc/notes.env
+              ExecStart=/opt/notes/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+              Restart=on-failure
+
+              [Install]
+              WantedBy=multi-user.target
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Restart notes
+
+        - name: Ensure the Notes API service is enabled and running
+          ansible.builtin.systemd_service:
+            name: notes
+            daemon_reload: true
+            enabled: true
+            state: started
+
+    - name: Configure the load balancer
+      when: "'lb' in group_names"
+      block:
+        - name: Install Nginx
+          ansible.builtin.apt:
+            name: nginx
+            state: present
+            update_cache: true
+            cache_valid_time: 3600
+
+        - name: Configure Nginx to balance requests across the web servers
+          ansible.builtin.copy:
+            dest: /etc/nginx/sites-available/notes
+            content: |
+              upstream notes_servers {
+                  server web1:8000;
+                  server web2:8000;
+              }
+
+              server {
+                  listen 80;
+
+                  location / {
+                      proxy_pass http://notes_servers;
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                      add_header X-Served $upstream_addr always;
+                  }
+              }
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Restart Nginx
+
+        - name: Enable the Notes Nginx site
+          ansible.builtin.file:
+            src: /etc/nginx/sites-available/notes
+            dest: /etc/nginx/sites-enabled/notes
+            state: link
+          notify: Restart Nginx
+
+        - name: Disable the default Nginx site
+          ansible.builtin.file:
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+          notify: Restart Nginx
+
+        - name: Ensure Nginx is enabled and running
+          ansible.builtin.systemd_service:
+            name: nginx
+            enabled: true
+            state: started
+
+  handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.systemd_service:
+        name: postgresql
+        state: restarted
+
+    - name: Restart notes
+      ansible.builtin.systemd_service:
+        name: notes
+        daemon_reload: true
+        state: restarted
+
+    - name: Restart Nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted
