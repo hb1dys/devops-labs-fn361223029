@@ -1,0 +1,5 @@
+---
+db_name: notes
+db_user: notes
+db_password: notes-lab-password
+notes_repo: https://github.com/hb1dys/devops-labs-fn361223029.git

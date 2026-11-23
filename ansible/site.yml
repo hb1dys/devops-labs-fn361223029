@@ -13,3 +13,47 @@
         state: present
         update_cache: true
         cache_valid_time: 3600
+
+- name: PostgreSQL database
+  hosts: db
+  become: true
+
+  tasks:
+    - name: Install PostgreSQL and the Python driver Ansible uses
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - python3-psycopg2
+        state: present
+
+    - name: Listen on all interfaces
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/17/main/postgresql.conf
+        regexp: '^#?listen_addresses\s*='
+        line: "listen_addresses = '*'"
+      notify: Restart PostgreSQL
+
+    - name: Allow password logins from the lab network
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/17/main/pg_hba.conf
+        line: "host all all 0.0.0.0/0 scram-sha-256"
+      notify: Restart PostgreSQL
+
+    - name: Create the database user
+      community.postgresql.postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+      become_user: postgres
+      no_log: true
+
+    - name: Create the database
+      community.postgresql.postgresql_db:
+        name: "{{ db_name }}"
+        owner: "{{ db_user }}"
+      become_user: postgres
+
+  handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted
