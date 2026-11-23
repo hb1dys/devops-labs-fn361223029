@@ -26,6 +26,12 @@
           - python3-psycopg2
         state: present
 
+    - name: Start PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
     - name: Listen on all interfaces
       ansible.builtin.lineinfile:
         path: /etc/postgresql/17/main/postgresql.conf
